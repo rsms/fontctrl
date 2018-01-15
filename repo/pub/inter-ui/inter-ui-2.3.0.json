@@ -1,0 +1,20 @@
+{
+  "version": "2.3.0",
+  "checksum": "742b72e3dc0076a38fc9f016de751844bf8c3cb9",
+  "family_name": "Inter UI",
+  "styles": [
+    "Regular",
+    "Italic",
+    "Medium",
+    "Medium Italic",
+    "Bold",
+    "Bold Italic",
+    "Black",
+    "Black Italic"
+  ],
+  "description": "A typeface specially designed for user interfaces",
+  "archive_url": "https://github.com/rsms/inter/releases/download/v2.3/Inter-UI-2.3.zip",
+  "info_url":    "https://rsms.me/inter/",
+  "authors":     [ "Rasmus Andersson" ],
+  "license":     "https://github.com/rsms/inter/blob/master/LICENSE.txt"
+}

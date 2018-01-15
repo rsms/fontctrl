@@ -1,0 +1,14 @@
+*.so
+*.o
+*.d
+*.core
+*.obj
+*.exe
+*.diff
+_*.ignore
+*~
+.DS_Store
+nohup.out
+
+/build
+/_*

@@ -1,0 +1,6 @@
+{
+  "repos": [
+    { "url": "http://localhost:1983/" }
+  ],
+  "font_dir": "~/Library/Fonts"
+}

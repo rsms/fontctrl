@@ -52,7 +52,7 @@ func cmd_sync(args []string) {
     }
   }
 
-  for fid, vpattern := range config.Fonts {
+  for fid, fsub := range config.Fonts {
     findex := config.FindFontIndex(fid)
     if findex == nil {
       L.Printf("error: font \"%s\" not found in any repository\n", fid)
@@ -60,10 +60,10 @@ func cmd_sync(args []string) {
     }
 
     L.Printf("found %s (%s) => %+v in repo %s\n",
-      fid, vpattern.String(), findex, findex.Repo)
+      fid, fsub.VersionPattern.String(), findex, findex.Repo)
 
     // matching version
-    i, latever := vpattern.Match(findex.Versions)
+    i, latever := fsub.VersionPattern.Match(findex.Versions)
     if i == -1 {
       L.Printf("no matching version for %s\n", fid)
       continue
@@ -125,7 +125,7 @@ func main() {
   if err != nil {
     L.Fatalf("failed to read config file: %v", err)
   }
-  // L.Printf("config: %+v", config)
+  L.Printf("config: %+v", config)
 
   // dispatch to command function
   cmd := flag.Arg(0)

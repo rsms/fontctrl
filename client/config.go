@@ -9,11 +9,48 @@ import (
   "gopkg.in/yaml.v2"
 )
 
+type FontSubscription struct {
+  VersionPattern   `json:"version,omitempty" yaml:"version,omitempty"`
+  Styles  []string `json:"repos,omitempty" yaml:"repos,omitempty"`
+}
+
+// similar type used only for YAML encoding
+type fontSubscription2 struct {
+  Version *VersionPattern `yaml:"version"`
+  Styles []string         `yaml:"styles"`
+}
+
+func (p *FontSubscription) UnmarshalYAML(u func(interface{}) error) error {
+  // handle two different forms:
+  // - <string> -- e.g. ">=1.2"
+  // - { version?: v string, styles?: []string }
+  if err := p.VersionPattern.UnmarshalYAML(u); err != nil {
+    st := fontSubscription2{ Version: &p.VersionPattern }
+    if err := u(&st); err != nil {
+      return err
+    }
+    p.Styles = st.Styles
+  }
+
+  return nil
+}
+
+func (p *FontSubscription) MarshalYAML() (interface{}, error) {
+  if p.Styles == nil || len(p.Styles) == 0 {
+    return p.VersionPattern, nil
+  }
+  return fontSubscription2{
+    Version: &p.VersionPattern,
+    Styles: p.Styles,
+  }, nil
+}
+
+
 type Config struct {
   File    string  `json:"-" yaml:"-"`
   FontDir string  `json:"font_dir,omitempty" yaml:"font-dir,omitempty"`
   Repos   []*Repo `json:"repos,omitempty" yaml:"repos,omitempty"`
-  Fonts   map[string]VersionPattern `json:"fonts" yaml:"fonts"`
+  Fonts  map[string]FontSubscription `json:"fonts" yaml:"fonts"`
 }
 
 const defaultRepoURL = "https://fontctrl.org/fonts/"
@@ -126,11 +163,6 @@ func (c *Config) init2() {
   for i, r := range c.Repos {
     if r == nil {
       nullIndices = append(nullIndices, i)
-    } else {
-      // normalize path
-      if r.Url[len(r.Url)-1] != '/' {
-        r.Url = r.Url + "/"
-      }
     }
   }
   if nullIndices != nil {

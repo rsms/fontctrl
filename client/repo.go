@@ -2,9 +2,11 @@ package main
 
 import (
   "encoding/json"
+  Path "path"
   "net/http"
   "fmt"
   "time"
+  "strings"
 )
 
 var httpClient = &http.Client{Timeout: 30 * time.Second}
@@ -54,6 +56,10 @@ func fetchJson(url string, v interface{}) error {
     return err
   }
   defer res.Body.Close()
+  if res.StatusCode < 200 || res.StatusCode > 299 {
+    return fmt.Errorf("%d %s (GET %s)",
+      res.StatusCode, http.StatusText(res.StatusCode), url)
+  }
   return json.NewDecoder(res.Body).Decode(v)
 }
 
@@ -74,7 +80,11 @@ func (f *FontIndex) GetVersionInfoAt(i int) (*FontVersionInfo, error) {
   }
 
   ver := f.Versions[i]
-  url := fmt.Sprintf("%s%s/%s-%s.json", f.Repo.Url, f.Id, f.Id, ver)
+  url, err := f.Repo.GetUrl(fmt.Sprintf("%s/%s-%s.json", f.Id, f.Id, ver))
+  if err != nil {
+    return nil, err
+  }
+
   L.Printf("fetching %s", url)
 
   fvi = &FontVersionInfo{}
@@ -95,8 +105,80 @@ func (r *Repo) String() string {
 }
 
 
+func withTrailingSlash(s string) string {
+  if s[len(s)-1] != '/' {
+    return s + "/"
+  }
+  return s
+}
+
+func parseGithubRepoUrl(s string, path string) (string, error) {
+  // expect "user/repo/path?#branch?"
+  br := "master"
+  var ps string
+  i, p := 0, 0
+  for i < len(s) {
+    if s[i] == '/' {
+      if p == 1 {
+        ps = s[i:]
+        s = s[:i]
+        if x := strings.IndexByte(ps, '#'); x > -1 {
+          br = ps[x+1:]
+          ps = ps[:x]
+        }
+        break
+      }
+      p++
+    }
+    i++
+  }
+
+  if p == 0 {
+    // no slash found
+    return s, fmt.Errorf(
+      "invalid github repo url \"%s\"; expected user/repo", s)
+  }
+
+  if len(ps) == 0 {
+    if p = strings.IndexByte(s, '#'); p > -1 {
+      br = s[p+1:]
+      s = s[:p]
+    }
+  }
+
+  s = "https://raw.githubusercontent.com/" + Path.Join(s, br, ps, path)
+
+  return s, nil
+}
+
+
+func (r *Repo) GetUrl(path string) (string, error) {
+  s := r.Url
+  p := strings.IndexByte(s, ':')
+  if p == -1 {
+    return s, fmt.Errorf("invalid repo url \"%s\"; missing prototcol", s)
+  }
+  proto := s[:p]
+  switch proto {
+    case "http": // pass
+    case "https": // pass
+    case "github": return parseGithubRepoUrl(s[p+1:], path)
+    default:
+      return s, fmt.Errorf(
+        "can not understand repo url \"%s\"; unknown protocol", s)
+  }
+  return withTrailingSlash(s) + path, nil
+}
+
+
 func (r *Repo) Update() error {
-  if err := fetchJson(r.Url + "index.json", &r.Index); err != nil {
+  url, err := r.GetUrl("index.json")
+  if err != nil {
+    return err
+  }
+
+  L.Printf("url: %s\n", url)
+  if err := fetchJson(url, &r.Index); err != nil {
     return err
   }
 

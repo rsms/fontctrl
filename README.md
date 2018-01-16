@@ -128,6 +128,9 @@ repos:
   - url: <repo-url>
 fonts:
   <font-name>: <font-version-pattern>
+  <font-name>: <font-subscription>
+    version: <font-version-pattern>
+    styles: [ <font-style> ]
 ```
 
 - `repos` contain an ordered listing of repositories from which to fetch fonts.
@@ -143,6 +146,11 @@ fonts:
   An empty string or `"*"` means "most recent stable release".
   The special string `"latest"` means "most recent release", which included
   pre-releases.
+- `<font-subscription>` can be used instead of just a version pattern to also
+  limit font styles. `<font-subscription>`
+- `<font-style>` case-insensitive name of a specific style,
+  e.g. "bold", "medium italic". When styles are specified, only those styles
+  will be installed and managed. (this is not yet implemented; may never be.)
 
 > Note: In the future, the configuration file will be expanded to include
 > account identity for accessing restricted repositories.

@@ -1,8 +1,16 @@
 font-dir: ~/Library/Fonts/fontctrl
 repos:
+  # - url: https://raw.githubusercontent.com/rsms/fontctrl-web/master/fonts/
+  # - url: github:rsms/fontctrl-web/fonts#master
+  - url: github:rsms/fontctrl-web/fonts
   - url: http://localhost:1983/
 fonts:
   # inter-ui: "latest"
   # inter-ui: "*-beta"
   # inter-ui: "*"
   inter-ui: ">=2.*"
+  # inter-ui:
+  #   version: ">=2.*"
+  #   styles: [ "bold", "regular", "italic" ]
+  # inter-ui:
+  #   styles: [ "bold", "regular", "italic" ]

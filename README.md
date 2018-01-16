@@ -184,4 +184,9 @@ $ client/build.sh
 $ ./build/fontctrl version
 ```
 
+Run unit tests:
+
+```txt
+$ client/test.sh
+```
 

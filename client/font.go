@@ -19,7 +19,7 @@ type FontFile struct {
   Family  string   `json:"family"`
   Style   string   `json:"style"`
   Version Version  `json:"version"`
-  UID     string  `json:"uid"`
+  FontID  string   `json:"uid"`  // == fontId record of name table
 }
 
 
@@ -86,7 +86,7 @@ func (f *FontFile) Parse(file sfnt.File) error {
 
   if len(f.Family) == 0 {
     // maybe font is missing typoPreferredFamily
-    f.Family = findFontNameValue(namet, sfnt.NameFull)
+    f.Family = findFontNameValue(namet, sfnt.NameFontFamily)
     if len(f.Family) == 0 {
       return errors.New("no family name")
     }
@@ -106,7 +106,7 @@ func (f *FontFile) Parse(file sfnt.File) error {
     return err
   }
 
-  f.UID = uid  
+  f.FontID = uid  
 
   // if strings.Contains(uid, "Inter UI") {
   //   L.Printf("- uid: %s; font = %+v\n", uid, f)
@@ -127,7 +127,7 @@ func findFontNameValue(namet *sfnt.TableName, nameID sfnt.NameID) string {
 
 
 func parseFontVersion(version, uid string, v *Version) error {
-  if err := ParseVersion(version, v); err != nil {
+  if err := v.Parse(version); err != nil {
     return err
   }
 

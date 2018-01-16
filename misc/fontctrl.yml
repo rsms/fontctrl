@@ -1,0 +1,8 @@
+font-dir: ~/Library/Fonts/fontctrl
+repos:
+  - url: http://localhost:1983/
+fonts:
+  # inter-ui: "latest"
+  # inter-ui: "*-beta"
+  # inter-ui: "*"
+  inter-ui: ">=2.*"

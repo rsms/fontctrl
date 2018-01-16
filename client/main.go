@@ -5,9 +5,6 @@ import (
   "fmt"
   "log"
   "os"
-  "os/user"
-  "path/filepath"
-  "strings"
 )
 
 // set at compile time
@@ -26,28 +23,66 @@ func init() {
 }
 
 
-func defaultFontDir(homeDir string) string {
-  // TODO: different paths on different operating systems
-  return filepath.Join(homeDir, "/Library/Fonts")
-}
-
-
-func cmd_update(args []string) {
-  if len(args) > 0 {
-    L.Fatalf("'%s update' does not accept any arguments\n", progname)
-  }
-  // opt := flag.NewFlagSet(progname + " update", flag.ExitOnError)
-  // opt.Parse(args)
+func updateRepos() {
   for _, r := range config.Repos {
     L.Printf("updating repo %s\n", r)
     if err := r.Update(); err != nil {
       L.Fatal(err)
     }
-    L.Printf("updated index: %+v", r.Index)
+  }
+}
+
+
+func cmd_sync(args []string) {
+  if len(args) > 0 {
+    L.Fatalf("'%s sync' does not accept any arguments\n", progname)
+  }
+  // opt := flag.NewFlagSet(progname + " sync", flag.ExitOnError)
+  // opt.Parse(args)
+
+  updateRepos()
+
+  L.Printf("scanning fonts in %s\n", config.FontDir)
+  var local LocalFontIndex
+  if err := local.Scandir(config.FontDir); err != nil {
+    if pe, ok := err.(*os.PathError); ok && pe != nil {
+      // not found -- continue
+    } else {
+      L.Fatal(err)
+    }
   }
 
-  if err := scanFonts(config.FontDir); err != nil {
-    L.Fatal(err)
+  for fid, vpattern := range config.Fonts {
+    findex := config.FindFontIndex(fid)
+    if findex == nil {
+      L.Printf("error: font \"%s\" not found in any repository\n", fid)
+      continue
+    }
+
+    L.Printf("found %s (%s) => %+v in repo %s\n",
+      fid, vpattern.String(), findex, findex.Repo)
+
+    // matching version
+    i, latever := vpattern.Match(findex.Versions)
+    if i == -1 {
+      L.Printf("no matching version for %s\n", fid)
+      continue
+    }
+
+    L.Printf("latest version for %s => %s\n", fid, latever)
+
+    // get font info
+    finfo, err := findex.GetVersionInfoAt(i)
+    if err != nil {
+      L.Fatal(err)
+    }
+    L.Printf("findex.GetInfo() => %+v\n", finfo)
+
+    // find local
+    locals := local.FindFamily(findex.Family)
+    for _, lf := range locals {
+      L.Printf("local font: %+v\n", lf.Style)
+    }
   }
 }
 
@@ -62,28 +97,17 @@ func cmd_version(_ []string) {
 
 
 func main() {
-  // resolve computer user
-  usr, err := user.Current()
-  if err != nil {
-    L.Fatal(err)
-  }
-  if len(usr.HomeDir) == 0 {
-    L.Fatal("no home directory for current user")
-  }
-
-  // resolve file system paths
-  configFile := filepath.Join(usr.HomeDir, ".fontctrl.json")
-
   // parse CLI options
   flag.Usage = func() {
     fmt.Fprintf(os.Stderr, "Usage: %s [options] <command>\n", progname)
     fmt.Fprintf(os.Stderr, "\nCommands:\n")
-    fmt.Fprintf(os.Stderr, "  update   Update the index of all repositories\n")
+    fmt.Fprintf(os.Stderr, "  sync     Sync repositories and update fonts\n")
     fmt.Fprintf(os.Stderr, "  version  Print version and exit\n")
     fmt.Fprintf(os.Stderr, "\nOptions:\n")
     flag.PrintDefaults()
   }
-  flag.StringVar(&configFile, "config", configFile, "Config file")
+  var configFile string
+  flag.StringVar(&configFile, "config", "", "Config file")
   flag.Parse()
 
   if flag.NArg() == 0 { // no <command>
@@ -92,20 +116,15 @@ func main() {
   }
 
   // load configuration
-  if err := loadConfig(&config, configFile); err != nil {
-    L.Fatalf("failed to parse config file %s: %v", configFile, err)
-  }
-
-  // FontDir
-  if len(config.FontDir) == 0 {
-    config.FontDir = defaultFontDir(usr.HomeDir)
+  var err error
+  if len(configFile) > 0 {
+    err = config.LoadFile(configFile)
   } else {
-    p := strings.Index(config.FontDir, "~/") // TODO: Windows
-    if p != -1 {
-      config.FontDir = config.FontDir[:p] + usr.HomeDir + config.FontDir[p+1:]
-    }
+    err = config.LoadBestFile()
   }
-  config.FontDir = filepath.Clean(config.FontDir)
+  if err != nil {
+    L.Fatalf("failed to read config file: %v", err)
+  }
   // L.Printf("config: %+v", config)
 
   // dispatch to command function
@@ -113,7 +132,7 @@ func main() {
   args := flag.Args()[1:]
   
   switch cmd {
-    case "update": cmd_update(args)
+    case "sync":    cmd_sync(args)
     case "version": cmd_version(args)
     default:
       L.Fatalf("Unknown command %s\nSee %s -h for help\n", cmd, progname)

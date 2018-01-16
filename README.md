@@ -115,10 +115,10 @@ fontctrl reads its configuration from a text file that you can edit to change
 what sources (repositories) your fonts are being installed from.
 fontctrl looks for the configuration file in the following locations, in order:
 
-- [macOS, linux] `~/.fontctrl.yml`
-- [windows] `%USERPROFILE%\AppData\Local\fontctrl\fontctrl.yml`
 - `./.fontctrl.yml`
 - `./fontctrl.yml`
+- [macOS, linux] `~/.fontctrl.yml`
+- [windows] `%USERPROFILE%\AppData\Local\fontctrl\fontctrl.yml`
 
 Shape of the configuration file:
 
